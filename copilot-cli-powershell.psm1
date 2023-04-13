@@ -6,6 +6,7 @@
     This module provides a convenient way to generate and execute code suggestions
     from the GitHub Copilot CLI in a PowerShell environment.
 #>
+
 function Invoke-GitHubCopilot {
     [CmdletBinding()]
     param (
