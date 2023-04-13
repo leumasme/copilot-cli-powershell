@@ -13,7 +13,7 @@ First, install the [Official GitHub Copilot CLI](https://www.npmjs.com/package/@
 Then run `github-copilot-cli auth` and follow the instructions.
 
 Then you can install this script from the PowerShell Gallery:  
-`Install-Module -Name copilot-cli`  
+`Install-Module -Name copilot-cli-powershell`  
 Next, open your Powershell Profile file (e.g. via `code $PROFILE`) and add a line with the Text  
 `Set-GitHubCopilotAliases`  
 Finally, restart powershell and invoke Copilot by using `?? Type what Command you want here!`.
