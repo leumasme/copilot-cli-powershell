@@ -8,8 +8,8 @@ I am not a good Powershell Dev in any way. If someone wants to take this over or
 
 This project is not affiliated with Github or Microsoft.
 ## Installation
-First, install the [Official GitHub Copilot CLI](https://www.npmjs.com/package/@githubnext/github-copilot-cli):  
-`npm install @githubnext/github-copilot-cli` (requires NodeJS v16+)  
+First, make sure you have [NodeJS](https://nodejs.org/en) v16+ installed and install the [Official GitHub Copilot CLI](https://www.npmjs.com/package/@githubnext/github-copilot-cli):  
+`npm install -g @githubnext/github-copilot-cli` (or yarn/pnpm equivalent if you prefer using those to manage your NodeJS packages)  
 Then run `github-copilot-cli auth` and follow the instructions.
 
 Then you can install this script from the PowerShell Gallery:  
