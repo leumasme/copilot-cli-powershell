@@ -19,3 +19,32 @@ Next, open your Powershell Profile file (e.g. via `code $PROFILE`) and add a lin
 Finally, restart powershell and invoke Copilot by using `?? Type what Command you want here!`  
 or `git? Type what git-specific Command you want here!`  
 or `gh? Type what github-cli-specific Command you want here!`
+
+## Normal vs Passive mode
+
+TLDR:
+
+Passive mode will simply register `??`, `git?` and `gh?` as command aliases that start copilot-cli.
+
+Normal mode will hook into powershell to listen for `Enter` keypresses to replace the command with an escaped version before powershell parses it to also capture characters like `"`, `;`, `|`   
+Normal mode will break if another script also tries to hook the `Enter` key.  
+
+/TLDR
+
+Powershell tries to parse typed commands to provide functionality like:
+- output piping (via "|")
+- multiple commands in one line (via ";")
+- multiple lines for one command (via automatically detecting unbalanced quotes and brackets)
+
+This however also means that using copilot-cli with an instruction that contains any of these special characters won't work.  
+For example:  
+`?? Join all words from the Get-Verb command with ", "`  
+will be transformed into the instruction  
+`Join all words from the Get-Verb command with ,`  
+and  
+`?? List all png files; sort them by size`  
+will be transformed into the instruction  
+`List all png files` and a separate **command** `sort them by size`  (which likely errors since `sort` isn't a command/binary)
+
+Normal mode is potentially problematic as `PSReadLine` currently has no support for multiple Key Handlers (not even for retrieving key handlers before replacing them so we can call them later).  
+This means that, if another script is also hooking the `Enter` key using `Set-PSReadLineKeyHandler`, only one of the two key handlers will actually run, breaking either this script or the other one.

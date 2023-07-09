@@ -13,7 +13,7 @@ function Invoke-GitAlias {
         [Parameter(ValueFromRemainingArguments, HelpMessage = "The remaining arguments for the Copilot command.")]
         [string[]]$RemainingArguments
     )
-    Invoke-GitHubCopilot "git" $RemainingArguments
+    Invoke-CopilotCommand "git-assist" ($RemainingArguments -join " ")
 }
 function Invoke-GHAlias {
     [CmdletBinding()]
@@ -21,70 +21,99 @@ function Invoke-GHAlias {
         [Parameter(ValueFromRemainingArguments, HelpMessage = "The remaining arguments for the Copilot command.")]
         [string[]]$RemainingArguments
     )
-    Invoke-GitHubCopilot "github" $RemainingArguments
+    Invoke-CopilotCommand "gh-assist" ($RemainingArguments -join " ")
 }
 
 function Invoke-GitHubCopilot {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, Position = 0, HelpMessage = "The Copilot command to execute.")]
-        [string]$Command,
-
         [Parameter(ValueFromRemainingArguments, HelpMessage = "The remaining arguments for the Copilot command.")]
         [string[]]$RemainingArguments
+    )
+    Invoke-CopilotCommand "what-the-shell" ($RemainingArguments -join " ")
+}
+
+function Invoke-CopilotCommand {
+    param (
+        [Parameter(Mandatory)][string]$SubCommand,
+        [Parameter(Mandatory)][string]$Instruction
     )
 
     $tempFile = Join-Path -Path $Env:TEMP -ChildPath "copilot_$((Get-Date).ToString('yyyyMMddHHmmss'))_$(Get-Random -Maximum 9999).txt"
 
-    function Invoke-CopilotCommand {
-        param (
-            [Parameter(Mandatory)][string]$CopilotCommand
-        )
+    github-copilot-cli $SubCommand --shellout $tempFile $Instruction
 
-        Invoke-Expression $CopilotCommand
+    if ($LASTEXITCODE -eq 0) {
+        $fileContentsArray = Get-Content $tempFile
+        $fileContents = [string]::Join("`n", $fileContentsArray)
+        Write-Host $fileContents
+        Invoke-Expression $fileContents
+    }
+    else {
+        Write-Host "User cancelled the command."
+    }
+}
 
-        if ($LASTEXITCODE -eq 0) {
-            $fileContentsArray = Get-Content $tempFile
-            $fileContents = [string]::Join("`n", $fileContentsArray)
-            Write-Host $fileContents
-            Invoke-Expression $fileContents
-        }
-        else {
-            Write-Host "User cancelled the command."
+function Test-EscapedString {
+    param (
+        [Parameter(Mandatory)][string]$String
+    )
+
+    
+    $startChar = $String.Substring(0, 1)
+    $endChar = $String.Substring($String.Length - 1, 1)
+
+    if (($startChar -eq "'") -and ($endChar -eq "'")) {
+        $unescapedQuotes = $String.Substring(1, $String.Length - 2) -replace "''", ""
+        if (-not ($unescapedQuotes -like "*'*")) {
+            return $true
         }
     }
 
-    switch ($Command) {
-        "help" {
-            $codeToRun = "github-copilot-cli help"
-            Invoke-Expression $codeToRun
-        }
-        "git" {
-            $remaining = $RemainingArguments -join ' '
-            Write-Host "github-copilot-cli git-assist --shellout $tempFile $remaining"
-            Invoke-CopilotCommand "github-copilot-cli git-assist --shellout $tempFile $remaining"
-        }
-        "github" {
-            $remaining = $RemainingArguments -join ' '
-            Write-Host "github-copilot-cli gh-assist --shellout $tempFile $remaining"
-            Invoke-CopilotCommand "github-copilot-cli gh-assist --shellout $tempFile $remaining"
-        }
-        default {
-            $arg = "$Command $($RemainingArguments -join ' ')"
-            Write-Host "github-copilot-cli what-the-shell --shellout $tempFile powershell $arg"
-            Invoke-CopilotCommand "github-copilot-cli what-the-shell --shellout $tempFile powershell $arg"
-        }
-    }
+    return $false
 }
 
 <#
 .SYNOPSIS
-    Sets aliases for the Invoke-GitHubCopilot function for easier access.
+    Sets aliases '??', 'git?', and 'gh?'
 #>
-function Set-GitHubCopilotAliases {
-    Set-Alias -Name ?? -Value Invoke-GitHubCopilot -Scope Global
+function Set-PassiveGitHubCopilotAliases {
+    Set-Alias -Name '??' -Value Invoke-GitHubCopilot -Scope Global
     Set-Alias -Name 'gh?' -Value Invoke-GHAlias -Scope Global
     Set-Alias -Name 'git?' -Value Invoke-GitAlias -Scope Global
 }
 
-Export-ModuleMember -Function Invoke-GitHubCopilot, Invoke-GHAlias, Set-GitHubCopilotAliases, Invoke-GitAlias
+<#
+.SYNOPSIS
+    Sets aliases '??', 'git?', and 'gh?' and hooks the Enter key to escape commands.
+#>
+function Set-GitHubCopilotAliases {
+    Set-PassiveGitHubCopilotAliases
+
+    Set-PSReadLineKeyHandler -Key Enter -ScriptBlock {
+        param($key, $arg)
+
+        $line = $null
+        $cursor = $null
+        [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref]$line, [ref]$cursor)
+
+        $elems = $line.Split(' ', 2)
+        $command = $elems[0]
+        $question = $elems[1]
+
+        if ($command -in "??", "git?", "gh?") {
+            echo (Test-EscapedString -String $elems[1])
+            if (-not (Test-EscapedString -String $elems[1])) {
+                $question = $elems[1].Replace("'", "''")
+                $question = "'$question'"
+            }
+            [Microsoft.PowerShell.PSConsoleReadLine]::Replace(0, $line.Length, "$command $question") 
+        }
+
+
+        [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+    }
+}
+
+
+Export-ModuleMember -Function Set-PassiveGitHubCopilotAliases, Set-GitHubCopilotAliases, Invoke-CopilotCommand, Invoke-GitHubCopilot, Invoke-GHAlias, Invoke-GitAlias
