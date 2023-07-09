@@ -16,6 +16,7 @@ Then you can install this script from the PowerShell Gallery:
 `Install-Module -Name copilot-cli-powershell`  
 Next, open your Powershell Profile file (e.g. via `code $PROFILE`) and add a line with the Text  
 `Set-GitHubCopilotAliases`  
+(Or, if you're experiencing issues, use the passive mode instead: `Set-PassiveGitHubCopilotAliases`)  
 Finally, restart powershell and invoke Copilot by using `?? Type what Command you want here!`  
 or `git? Type what git-specific Command you want here!`  
 or `gh? Type what github-cli-specific Command you want here!`
